@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"github.com/mitchellh/mapstructure"
-	"ledis/cache"
 	. "ledis/common"
 	"ledis/models"
+	"ledis/pocket"
 	"ledis/utils"
 )
 
@@ -52,8 +52,8 @@ func CreateTableHandler(command Command) []byte {
 		field := models.NewField(f.Name, f.Type, f.RelModel, f.RelField)
 		fields = append(fields, field)
 	}
-	md := models.NewModel(param.TbName, param.DBName, fields)
-	err = cache.AddModel(param.DBName, param.TbName, md)
+	md := models.NewModel(param.DBName, param.TbName, fields)
+	err = pocket.AddModel(md)
 	if err != nil {
 		Logger.Errorln(err)
 		return ErrorResponse(command.Code, utils.BadRequest)
@@ -81,7 +81,12 @@ func SetCacheHandler(command Command) []byte {
 		Logger.Errorln(err)
 		return ErrorResponse(command.Code, utils.BadRequest)
 	}
-	err = cache.SetCache(param.DBName, param.TbName, param.Data)
+	model, err := pocket.FindModel(param.DBName, param.TbName)
+	if err != nil {
+		Logger.Errorln(err)
+		return ErrorResponse(command.Code, utils.BadRequest)
+	}
+	err = pocket.AddData(model, param.Data)
 	if err != nil {
 		Logger.Errorln(err)
 		return ErrorResponse(command.Code, utils.BadRequest)
@@ -97,11 +102,15 @@ func GetCacheHandler(command Command) []byte {
 		Logger.Errorln(err)
 		return ErrorResponse(command.Code, utils.BadRequest)
 	}
-	result, err := cache.GetOneCache(param.DBName, param.TbName, param.Key, param.Value)
+	model, err := pocket.FindModel(param.DBName, param.TbName)
 	if err != nil {
 		Logger.Errorln(err)
 		return ErrorResponse(command.Code, utils.BadRequest)
 	}
-	result.Print()
+	result, err := pocket.GetData(model, param.Key, param.Value)
+	if err != nil {
+		Logger.Errorln(err)
+		return ErrorResponse(command.Code, utils.BadRequest)
+	}
 	return APIResponse(command.Code, result)
 }

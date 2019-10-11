@@ -1,6 +1,6 @@
-package storage
+package htable
 
-import "ledis/common"
+import "ledis/utils"
 
 // 内存存储
 
@@ -28,9 +28,7 @@ func init() {
 
 func Store(content []byte) *Block {
 	length := len(content)
-	common.Logger.Info("store length = ", length)
 	for _, block := range FreeList {
-		common.Logger.Info("block = ", block.Offset, block.Length)
 		if block.Length >= length {
 			for i:=block.Offset;i<block.Offset+length;i++ {
 				Content[i] = content[i-block.Offset]
@@ -48,6 +46,11 @@ func Store(content []byte) *Block {
 	return nil
 }
 
-func GetStore(offset int, length int) []byte {
-	return Content[offset:offset+length]
+func (block *Block) GetContent() []byte {
+	return Content[block.Offset:block.Offset+block.Length]
+}
+
+// KeyToInt 将 Key 转换为数组下标
+func KeyToInt(key interface{}) int {
+	return utils.HashInt(key) % HashTableLength
 }
